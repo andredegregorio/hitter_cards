@@ -1,0 +1,25 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {   
+		"files.exclude": {
+        	"**/__pycache__": true,
+        	"**/*.pyc": true,
+			"venv": true
+	    },
+		"python.defaultInterpreterPath": "./venv/bin/python",
+		"workbench.colorTheme": "Default Dark Modern",
+		"editor.suggestOnTrigger": true,
+		"editor.quickSuggestions": {
+			"other": true,
+			"comments": true,
+			"strings": true,
+		"python.analysis.autoImportCompletions": true,
+		"editor.snippetSuggestions": true,
+		"editor.tabCompletion": true
+		}
+	}
+}
