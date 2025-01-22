@@ -6,6 +6,10 @@ The goal of this project is to create simple yet data-rich graphics that provide
 
 Whether a hitter has made a mechanical adjustment to their swing, implemented a new swing decision strategy, or is recovering from an injury, these cards offer valuable insights into their performance. 
 
+## How to Use
+
+This project is designed to run through the main.ipynb file, where users can input custom arguments to generate hitter cards. Any pull requests aimed at improving aspects such as load times, file structure, or overall efficiency are highly appreciated.
+
 ![Volpe2024Post](https://github.com/user-attachments/assets/5d839152-31f3-4277-b80e-12225f65eb81)
 
 ## Contact Information
