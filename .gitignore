@@ -1,3 +1,4 @@
 mlb2024csvmaker.ipynb
 *.pyc
 __pycache__/
+venv/
