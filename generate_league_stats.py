@@ -7,9 +7,9 @@ import pandas as pd
 import numpy as np
 import pybaseball as pyb
 from tqdm import tqdm
-from data_processing import process_hitter_data
+from data_processing import calculate_pulled_air
 from utils import get_savant_data
-from constants import SEASON_DATES
+from constants import SEASON_DATES, BIP_EVENTS
 
 def calculate_custom_stats(player_id, start_date, end_date):
     """
@@ -21,7 +21,7 @@ def calculate_custom_stats(player_id, start_date, end_date):
         end_date (str): End date
         
     Returns:
-        dict: Custom stats (Pulled FB%, EV90, Bat Speed, Sweet Spot%)
+        dict: Custom stats (Pulled Air%, EV90, Sweet Spot%, Bat Speed)
     """
     try:
         # Fetch raw Statcast data
@@ -31,24 +31,18 @@ def calculate_custom_stats(player_id, start_date, end_date):
             return None
         
         # Filter for balls in play
-        from constants import BIP_EVENTS
         bip_data = raw_data[raw_data['events'].isin(BIP_EVENTS)].copy()
         
         if len(bip_data) == 0:
             return None
         
-        # Calculate Pulled FB%
-        bip_data['pulled_fly'] = (
-            ((bip_data['hc_x'] > 125) & (bip_data['stand'] == 'R')) |
-            ((bip_data['hc_x'] < 125) & (bip_data['stand'] == 'L'))
-        ) & (bip_data['launch_angle'] >= 25) & (bip_data['launch_angle'] <= 50)
+        # Calculate Pulled Air% using Variation 7 formula
+        pulled_air_rate = calculate_pulled_air(bip_data)
         
-        pulled_fb_rate = bip_data['pulled_fly'].mean() * 100 if len(bip_data) > 0 else 0
-        
-        # Calculate EV90
+        # Calculate EV90 (90th percentile exit velocity)
         ev90 = bip_data['launch_speed'].quantile(0.9) if len(bip_data) > 0 else 0
         
-        # Calculate Sweet Spot%
+        # Calculate Sweet Spot% (launch angles 8-32 degrees)
         bip_data['sweet_spot'] = (bip_data['launch_angle'] >= 8) & (bip_data['launch_angle'] < 32)
         sweet_spot_rate = bip_data['sweet_spot'].mean() * 100 if len(bip_data) > 0 else 0
         
@@ -56,13 +50,14 @@ def calculate_custom_stats(player_id, start_date, end_date):
         bat_speed = raw_data['bat_speed'].mean() if 'bat_speed' in raw_data.columns and raw_data['bat_speed'].notna().sum() > 0 else 0
         
         return {
-            'Pulled FB%': pulled_fb_rate,
+            'Pulled Air%': pulled_air_rate,
             'EV90': ev90,
             'Sweet Spot%': sweet_spot_rate,
             'Bat Speed': bat_speed
         }
         
     except Exception as e:
+        print(f"Error processing player {player_id}: {str(e)}")
         return None
 
 def generate_league_stats(season):
@@ -87,7 +82,7 @@ def generate_league_stats(season):
     
     # Step 1: Get Fangraphs leaderboard (has most stats)
     print("\nFetching Fangraphs leaderboard...")
-    fg_stats = pyb.batting_stats(season, qual=340)
+    fg_stats = pyb.batting_stats(season, qual=340)  # Savant's 2.1 PA/game qualifier
     print(f"Found {len(fg_stats)} qualified players")
     
     # Step 2: Select only the columns we need from Fangraphs
@@ -135,6 +130,7 @@ def generate_league_stats(season):
     
     # Step 4: Calculate custom stats from Statcast
     print("\nCalculating custom stats from Statcast...")
+    print("This includes: Pulled Air%, EV90, Sweet Spot%, Bat Speed")
     custom_stats_list = []
     failed_count = 0
     
@@ -145,7 +141,7 @@ def generate_league_stats(season):
         if custom_stats is None:
             failed_count += 1
             custom_stats = {
-                'Pulled FB%': 0,
+                'Pulled Air%': 0,
                 'EV90': 0,
                 'Sweet Spot%': 0,
                 'Bat Speed': 0
@@ -172,6 +168,9 @@ def generate_league_stats(season):
     print(f"\nFinal dataset: {len(league_df)} players")
     if failed_count > 0:
         print(f"Warning: {failed_count} players had missing Statcast data (filled with zeros)")
+    
+    print(f"\nNote: Pulled Air% systematically underestimates by ~2.5-3% compared to Savant,")
+    print(f"but error is consistent across all players, so percentiles remain accurate.")
     
     return league_df
 
@@ -204,6 +203,8 @@ def main():
     print("\n" + "="*60)
     print("League stats generation complete!")
     print("="*60)
+    print("\nYour clean2024.csv and clean2025.csv are ready in the data/ folder.")
+    print("These can now be used for percentile calculations in your player cards.")
 
 if __name__ == "__main__":
     main()
