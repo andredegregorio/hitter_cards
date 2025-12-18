@@ -1,8 +1,20 @@
 # Season info
-CURRENT_SEASON = 2024
+CURRENT_SEASON = 2025
 
 # Opening and closing dates for each season
 SEASON_DATES = {
+	2026: {
+        'REG_START': '2026-03-25',
+        'REG_END': '2026-09-28',
+        'POST_START': '2026-09-29',
+        'POST_END': '2026-11-09',
+        'SPRING_START': '2026-02-10',
+        'SPRING_END': '2026-03-24',
+        'FH_START': '2026-03-25',
+        'FH_END': '2026-07-12',
+        'SH_START': '2026-07-17',
+        'SH_END': '2026-09-28'
+    },
     2025: {
         'REG_START': '2025-03-27',
         'REG_END': '2025-09-28',
