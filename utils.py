@@ -105,18 +105,22 @@ def get_player_bio(player_id: str) -> dict:
 def get_team_logo(player_id: str) -> Image:
     """
     Fetches the logo of a player's current MLB team.
+    Falls back to MLB logo for minor league/winter ball teams.
 
     Args:
         player_id (str): The player's MLB ID.
 
     Returns:
-        Image: The team's logo image (PIL Image) if successful, or None if there's an error.
+        Image: The team's logo image (PIL Image), or MLB logo as fallback.
     """
+    # MLB logo fallback URL (PNG format)
+    MLB_LOGO_URL = "https://a.espncdn.com/i/teamlogos/leagues/500/mlb.png"
+    
     try:
         # Fetch player data
         url = f"https://statsapi.mlb.com/api/v1/people?personIds={player_id}&hydrate=currentTeam"
         response = requests.get(url)
-        response.raise_for_status()  # Raise an error for bad responses
+        response.raise_for_status()
         data = response.json()
 
         # Get team abbreviation from player data
@@ -126,7 +130,7 @@ def get_team_logo(player_id: str) -> Image:
 
         team_url = f"https://statsapi.mlb.com{team_link}"
         team_response = requests.get(team_url)
-        team_response.raise_for_status()  # Raise an error for bad responses
+        team_response.raise_for_status()
         team_data = team_response.json()
 
         team_abbreviation = team_data['teams'][0].get('abbreviation', None)
@@ -135,18 +139,24 @@ def get_team_logo(player_id: str) -> Image:
 
         # Get the logo URL from the MLB_TEAM_LOGOS mapping
         logo_url = MLB_TEAM_LOGOS.get(team_abbreviation)
+        
+        # If team not in mapping (minor league, etc.), use MLB logo
         if not logo_url:
-            raise ValueError(f"Logo URL not found for team: {team_abbreviation}")
+            print(f"Team {team_abbreviation} not found in MLB teams, using MLB logo")
+            logo_url = MLB_LOGO_URL
 
         # Fetch and return the team logo
         logo_response = requests.get(logo_url)
-        logo_response.raise_for_status()  # Raise an error for bad responses
+        logo_response.raise_for_status()
         img = Image.open(BytesIO(logo_response.content))
         return img
 
     except Exception as e:
-        print(f"An error occurred while fetching the team logo: {e}")
-        return None  # Return None if there's an error
+        print(f"Error fetching team logo: {e}, using MLB logo as fallback")
+        # Fallback to MLB logo
+        logo_response = requests.get(MLB_LOGO_URL)
+        img = Image.open(BytesIO(logo_response.content))
+        return img
     
 def get_timeframe(game_type: str = None, start_date: str = None, end_date: str = None, season: int = 2024):
     """

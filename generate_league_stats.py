@@ -9,7 +9,7 @@ import pybaseball as pyb
 from tqdm import tqdm
 from data_processing import calculate_pulled_air
 from utils import get_savant_data
-from constants import SEASON_DATES, BIP_EVENTS
+from constants import SEASON_DATES, BIP_EVENTS, SWING_CODE, WHIFF_CODE
 
 def calculate_custom_stats(player_id, start_date, end_date):
     """
@@ -21,7 +21,7 @@ def calculate_custom_stats(player_id, start_date, end_date):
         end_date (str): End date
         
     Returns:
-        dict: Custom stats (Pulled Air%, EV90, Sweet Spot%, Bat Speed)
+        dict: Custom stats (Whiff%, Pulled Air%, EV90, Sweet Spot%, Bat Speed)
     """
     try:
         # Fetch raw Statcast data
@@ -36,6 +36,11 @@ def calculate_custom_stats(player_id, start_date, end_date):
         if len(bip_data) == 0:
             return None
         
+        # Calculate Whiff% - swinging strikes / total swings
+        swings = raw_data['description'].isin(SWING_CODE)
+        whiffs = raw_data['description'].isin(WHIFF_CODE)
+        whiff_rate = (whiffs.sum() / swings.sum() * 100) if swings.sum() > 0 else 0
+        
         # Calculate Pulled Air% using Variation 7 formula
         pulled_air_rate = calculate_pulled_air(bip_data)
         
@@ -46,10 +51,21 @@ def calculate_custom_stats(player_id, start_date, end_date):
         bip_data['sweet_spot'] = (bip_data['launch_angle'] >= 8) & (bip_data['launch_angle'] < 32)
         sweet_spot_rate = bip_data['sweet_spot'].mean() * 100 if len(bip_data) > 0 else 0
         
-        # Calculate Bat Speed (2024+ only)
-        bat_speed = raw_data['bat_speed'].mean() if 'bat_speed' in raw_data.columns and raw_data['bat_speed'].notna().sum() > 0 else 0
+        # Calculate Bat Speed - average of fastest 90% of swings (2024+ only)
+        if 'bat_speed' in raw_data.columns:
+            bat_speeds = raw_data['bat_speed'].dropna()
+            if len(bat_speeds) > 0:
+                # Exclude slowest 10% (check swings, broken bats, etc.)
+                threshold_10th = bat_speeds.quantile(0.10)
+                fast_swings = bat_speeds[bat_speeds >= threshold_10th]
+                bat_speed = fast_swings.mean()
+            else:
+                bat_speed = 0
+        else:
+            bat_speed = 0
         
         return {
+            'Whiff%': whiff_rate,
             'Pulled Air%': pulled_air_rate,
             'EV90': ev90,
             'Sweet Spot%': sweet_spot_rate,
@@ -91,14 +107,11 @@ def generate_league_stats(season):
         'wOBA', 'xwOBA', 'xBA', 'xSLG',
         'Barrel%', 'HardHit%',
         'O-Contact%', 'Z-Contact%',
-        'O-Swing%', 'Z-Swing%',
-        'SwStr%'  # Will rename to Whiff%
+        'O-Swing%', 'Z-Swing%'
+        # NOTE: NOT including SwStr% - we'll calculate true Whiff% from Statcast
     ]
     
     league_df = fg_stats[fg_columns].copy()
-    
-    # Rename SwStr% to Whiff%
-    league_df = league_df.rename(columns={'SwStr%': 'Whiff%'})
     
     # Calculate Z-O Swing% from existing columns
     league_df['Z-O Swing%'] = league_df['Z-Swing%'] - league_df['O-Swing%']
@@ -130,7 +143,7 @@ def generate_league_stats(season):
     
     # Step 4: Calculate custom stats from Statcast
     print("\nCalculating custom stats from Statcast...")
-    print("This includes: Pulled Air%, EV90, Sweet Spot%, Bat Speed")
+    print("This includes: Whiff%, Pulled Air%, EV90, Sweet Spot%, Bat Speed")
     custom_stats_list = []
     failed_count = 0
     
@@ -141,6 +154,7 @@ def generate_league_stats(season):
         if custom_stats is None:
             failed_count += 1
             custom_stats = {
+                'Whiff%': 0,
                 'Pulled Air%': 0,
                 'EV90': 0,
                 'Sweet Spot%': 0,
