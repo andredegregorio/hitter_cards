@@ -19,7 +19,7 @@ Email: degregorioandre@gmail.com
 
 LinkedIn: [LinkedIn Profile](https://www.linkedin.com/in/andredegregorio/)
 
-GitHub: [Github Profile](https://github.com/andred22)
+GitHub: [Github Profile](https://github.com/andredegregorio)
 
 I look forward to connecting with you!
 
