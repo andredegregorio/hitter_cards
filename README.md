@@ -10,7 +10,7 @@ Whether a hitter has made a mechanical adjustment to their swing, implemented a 
 
 This project is designed to run through the main.ipynb file, where users can input custom arguments to generate hitter cards. Any pull requests aimed at improving aspects such as load times, file structure, or overall efficiency are highly appreciated.
 
-![Refsnyder2025Splits](https://github.com/user-attachments/assets/f76f8c90-d49a-48b5-ada4-342f66f15a78)
+![Refsnyder2025Splits](https://github.com/user-attachments/assets/533a2278-a443-4175-a36e-e9e748a63463)
 
 ## Contact Information
 For any business inquiries, project-related questions, or collaboration opportunities, please feel free to reach out to me:
